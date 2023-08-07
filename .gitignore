@@ -1,0 +1,8 @@
+*
+
+!*/
+
+!/.gitignore
+!/.gitmodules
+!/lib/fast-xml-parser/*
+!/searcher/ALSong.js
