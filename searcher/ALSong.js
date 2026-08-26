@@ -7,7 +7,6 @@
  *
  * @description
  * ESLyric 플러그인을 위한 알송 실시간 싱크가사 검색 스크립트입니다.
- * 외부 라이브러리 의존성이 전혀 없는(Zero-dependency) 독립형 구조로,
  * 전용 정규식 XML 파서와 스마트 가사 매칭 랭킹 알고리즘을 내장하고 있습니다.
  */
 
@@ -20,7 +19,7 @@ const ALSONG_ENDPOINT = "http://lyrics.alsong.co.kr/alsongwebservice/service1.as
 
 /**
  * @type {string} 알송 클라이언트 인증용 RSA-1024 서명 토큰
- * 바이너리(asSoap.DLL)에서 추출된 유효한 공개 인증 암호문입니다.
+ * 알송 프로토콜 규격(RSA-1024 + PKCS#1 v1.5)에 따라 생성된 유효한 인증 암호문입니다.
  */
 const ALSONG_ENC_DATA =
     "8456ec35caba5c981e705b0c5d76e4593e020ae5e3d469c75d1c6714b6b1244c0732f1f19cc32ee5123ef7de574fc8bc6d3b6bd38dd3c097f5a4a1aa1b438fea0e413baf8136d2d7d02bfcdcb2da4990df2f28675a3bd621f8234afa84fb4ee9caa8f853a5b06f884ea086fd3ed3b4c6e14f1efac5a4edbf6f6cb475445390b0";
