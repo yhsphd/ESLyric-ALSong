@@ -1,6 +1,6 @@
 /*
     ALSong Lyrics Searcher for ESLyric
-    Zero-dependency implementation
+    Zero-dependency implementation with smart ranking & scoring
 */
 
 export function getConfig(cfg) {
@@ -66,6 +66,17 @@ export function getLyrics(meta, man) {
             return;
         }
 
+        if (!candidates || candidates.length === 0) {
+            return;
+        }
+
+        // Calculate matching score and sort in descending order
+        for (const candidate of candidates) {
+            candidate.score = calculateScore(candidate, meta);
+        }
+        candidates.sort((a, b) => b.score - a.score);
+
+        // Register sorted candidates to ESLyric manager
         for (const candidate of candidates) {
             if (man.checkAbort()) {
                 return;
@@ -123,6 +134,85 @@ function normalizeLyric(rawLyric) {
         .replace(/&apos;/g, "'")
         .replace(/\r\n/g, "\n")
         .replace(/\r/g, "\n");
+}
+
+function calculateScore(candidate, meta) {
+    let score = 0;
+
+    const targetTitle = normalizeForCompare(meta.title);
+    const candTitle = normalizeForCompare(candidate.title);
+    const targetArtist = normalizeForCompare(meta.artist);
+    const candArtist = normalizeForCompare(candidate.artist);
+    const targetAlbum = normalizeForCompare(meta.album);
+    const candAlbum = normalizeForCompare(candidate.album);
+
+    // 1. Title Similarity (max 45 points)
+    if (targetTitle && candTitle) {
+        if (targetTitle === candTitle) {
+            score += 45;
+        } else if (candTitle.includes(targetTitle) || targetTitle.includes(candTitle)) {
+            score += 30;
+        } else {
+            score += Math.round(getStringSimilarity(targetTitle, candTitle) * 25);
+        }
+    }
+
+    // 2. Artist Similarity (max 30 points)
+    if (targetArtist && candArtist) {
+        if (targetArtist === candArtist) {
+            score += 30;
+        } else if (candArtist.includes(targetArtist) || targetArtist.includes(candArtist)) {
+            score += 20;
+        } else {
+            score += Math.round(getStringSimilarity(targetArtist, candArtist) * 15);
+        }
+    }
+
+    // 3. Album Match (max 10 points)
+    if (targetAlbum && candAlbum && targetAlbum === candAlbum) {
+        score += 10;
+    }
+
+    // 4. Sync Lyric Quality (max 15 points)
+    const timeTagMatches = candidate.lyric.match(/\[\d{1,2}:\d{2}(?:\.\d{1,3})?\]/g);
+    const timeTagCount = timeTagMatches ? timeTagMatches.length : 0;
+    if (timeTagCount > 0) {
+        score += 10; // Contains sync timestamps
+        if (timeTagCount >= 10) {
+            score += 5; // Good amount of sync lines
+        }
+    }
+
+    return score;
+}
+
+function normalizeForCompare(str) {
+    if (!str) return "";
+    return str.toLowerCase().replace(/[\s\-_.,/\\()\[\]{}'"`!?:;]/g, "");
+}
+
+function getStringSimilarity(s1, s2) {
+    if (!s1 || !s2) return 0;
+    if (s1 === s2) return 1;
+    if (s1.length < 2 || s2.length < 2) return 0;
+
+    const bigrams = new Map();
+    for (let i = 0; i < s1.length - 1; i++) {
+        const pair = s1.substr(i, 2);
+        bigrams.set(pair, (bigrams.get(pair) || 0) + 1);
+    }
+
+    let intersection = 0;
+    for (let i = 0; i < s2.length - 1; i++) {
+        const pair = s2.substr(i, 2);
+        const count = bigrams.get(pair) || 0;
+        if (count > 0) {
+            bigrams.set(pair, count - 1);
+            intersection++;
+        }
+    }
+
+    return (2.0 * intersection) / (s1.length - 1 + s2.length - 1);
 }
 
 function escapeXml(str) {
